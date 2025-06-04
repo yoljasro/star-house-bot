@@ -56,8 +56,8 @@ bot.on('message', (msg) => {
   }
 
   if (text === '📍 Offis manzili') {
-    bot.sendLocation(chatId, 41.311081, 69.240562);
-    return bot.sendMessage(chatId, '📍 Manzil: Tashkent, Yunusobod tumani, Star House ofisi');
+    bot.sendLocation(chatId, 41.270784, 69.209695);
+    return bot.sendMessage(chatId, '📍 Manzil: Tashkent, Chilonzor tumani, Star House Residence');
   }
 
   if (text === '🎉 Aksiyalar') {
@@ -77,7 +77,7 @@ bot.on('message', (msg) => {
   if (state.step === 'collect_phone') {
     state.phone = text;
     state.step = null;
-    userState.set(chatId, state);
+    userState.set(chatId, state);      
 
     const summary = `📥 Yangi so‘rov:\n👤 Ism: ${state.name}\n📞 Tel: ${state.phone}\n${state.selection ? `🏠 Tanlangan kvartira: ${state.selection}` : ''}`;
 
