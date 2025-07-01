@@ -56,8 +56,8 @@ bot.on('message', (msg) => {
   }
 
   if (text === '📍 Offis manzili') {
-    bot.sendLocation(chatId, 41.311081, 69.240562);
-    return bot.sendMessage(chatId, '📍 Manzil: Tashkent, Yunusobod tumani, Star House ofisi');
+    bot.sendLocation(chatId, 41.228404, 69.232521,);
+    return bot.sendMessage(chatId, '📍 Manzil: Tashkent, Chilonzor tumani, Star House ofisi');
   }
 
   if (text === '🎉 Aksiyalar') {
