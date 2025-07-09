@@ -7,20 +7,50 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const forwardBotToken = process.env.FORWARD_BOT_TOKEN;
 const forwardChatId = process.env.FORWARD_CHAT_ID;
 
+const userState = new Map();
+
+const promotions = `🎉 Aksiyalar:
+💵 Naqd to‘lovda: 15% chegirma
+💳 50% oldindan to‘lovda: 10% chegirma`;
+
 const apartments = {
-  '1 xonali': { desc: '1-xonali kvartira: 40m², 3-qavat, $25,000', price: 25000 },
-  '2 xonali': { desc: '2-xonali kvartira: 60m², 5-qavat, $35,000', price: 35000 },
-  '3 xonali': { desc: '3-xonali kvartira: 85m², 7-qavat, $50,000', price: 50000 },
+  '1 xonali (39.4m²)': {
+    size: 39.4,
+    total: 393606000,
+    prepay: 118081800,
+    rest: 275524200,
+    months: 30,
+    monthly: 9184140
+  },
+  '1 xonali (44.2m²)': {
+    size: 44.2,
+    total: 441558000,
+    prepay: 132467400,
+    rest: 309090600,
+    months: 30,
+    monthly: 10303020
+  },
+  '2 xonali (62.4m²)': {
+    size: 62.4,
+    total: 623376000,
+    prepay: 187012800,
+    rest: 436363200,
+    months: 36,
+    monthly: 12121200
+  },
+  '3 xonali (85.7m²)': {
+    size: 85.7,
+    total: 856143000,
+    prepay: 256842900,
+    rest: 599300100,
+    months: 48,
+    monthly: 12485419
+  }
 };
 
-const userState = new Map();
-const adminChatId = process.env.ADMIN_CHAT_ID;
-
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
+function showMainMenu(chatId) {
   userState.set(chatId, {});
-
-  bot.sendMessage(chatId, 'Assalomu alaykum! Star House botiga xush kelibsiz. Quyidagi bo‘limlardan birini tanlang:', {
+  bot.sendMessage(chatId, 'Quyidagi bo‘limlardan birini tanlang:', {
     reply_markup: {
       keyboard: [
         ['🏠 Xonadonlarni ko‘rish', '📅 Ko‘rishga yozilish'],
@@ -30,12 +60,21 @@ bot.onText(/\/start/, (msg) => {
       one_time_keyboard: true
     }
   });
+}
+
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  showMainMenu(chatId);
 });
 
 bot.on('message', (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
   const state = userState.get(chatId) || {};
+
+  if (text === '🏠 Bosh menyu') {
+    return showMainMenu(chatId);
+  }
 
   if (text === '🏠 Xonadonlarni ko‘rish') {
     state.step = 'selecting_apartment';
@@ -56,15 +95,21 @@ bot.on('message', (msg) => {
   }
 
   if (text === '📍 Offis manzili') {
-    bot.sendLocation(chatId, 41.228404, 69.232521,);
-    return bot.sendMessage(chatId, '📍 Manzil: Tashkent, Chilonzor tumani, Star House ofisi');
+    bot.sendLocation(chatId, 41.228404, 69.232521);
+    return bot.sendMessage(chatId, '📍 Manzil: Tashkent, Chilonzor tumani, Star House ofisi', {
+      reply_markup: {
+        keyboard: [['🏠 Bosh menyu']],
+        resize_keyboard: true,
+        one_time_keyboard: true
+      }
+    });
   }
 
   if (text === '🎉 Aksiyalar') {
     state.step = 'promo_name';
     userState.set(chatId, state);
-    bot.sendMessage(chatId, '🎉 Hozirgi aksiya: 3-xonali kvartiralarga 5% chegirma! Faqat 3 kun davomida.');
-    return bot.sendMessage(chatId, '👤 Ismingizni kiriting:');
+    bot.sendMessage(chatId, promotions);
+    return bot.sendMessage(chatId, '📝 Aksiya asosida malumot qoldirish uchun ismingizni kiriting:');
   }
 
   if (state.step === 'visit_name' || state.step === 'promo_name' || state.step === 'apartment_name') {
@@ -81,7 +126,13 @@ bot.on('message', (msg) => {
 
     const summary = `📥 Yangi so‘rov:\n👤 Ism: ${state.name}\n📞 Tel: ${state.phone}\n${state.selection ? `🏠 Tanlangan kvartira: ${state.selection}` : ''}`;
 
-    bot.sendMessage(chatId, '✅ Maʼlumotlar qabul qilindi. Tez orada siz bilan bog‘lanamiz.');
+    bot.sendMessage(chatId, '✅ Maʼlumotlar qabul qilindi. Tez orada siz bilan bog‘lanamiz.', {
+      reply_markup: {
+        keyboard: [['🏠 Bosh menyu']],
+        resize_keyboard: true,
+        one_time_keyboard: true
+      }
+    });
 
     const forwardBot = new TelegramBot(forwardBotToken);
     forwardBot.sendMessage(forwardChatId, summary);
@@ -96,28 +147,21 @@ bot.on('callback_query', (query) => {
   if (data.startsWith('apartment:')) {
     const type = data.split(':')[1];
     const info = apartments[type];
-    const months = [6, 12, 18];
 
-    const options = months.map(m => [
-      {
-        text: `${m} oy - $${Math.round(info.price / m)}/oyiga`,
-        callback_data: `plan:${type}:${m}`
-      }
-    ]);
+    const message = `🏠 ${type}\n📐 Maydoni: ${info.size} m²\n💰 Jami narx: ${info.total.toLocaleString()} so‘m\n🧾 30% boshlang‘ich to‘lov: ${info.prepay.toLocaleString()} so‘m\n💸 Qolgan summa: ${info.rest.toLocaleString()} so‘m\n📆 ${info.months} oyga: ${info.monthly.toLocaleString()} so‘m/oy\n\n${promotions}`;
 
-    return bot.sendMessage(chatId, `📄 ${info.desc}\n\n💰 To‘lov variantlarini tanlang:`, {
+    return bot.sendMessage(chatId, message, {
       reply_markup: {
-        inline_keyboard: options
+        inline_keyboard: [[{ text: '📝 Yozilish', callback_data: `plan:${type}` }]]
       }
     });
   }
 
   if (data.startsWith('plan:')) {
-    const [_, type, month] = data.split(':');
+    const type = data.split(':')[1];
     const info = apartments[type];
-    const price = Math.round(info.price / parseInt(month));
 
-    state.selection = `${type}, ${month} oy - $${price}/oyiga`;
+    state.selection = `${type}, ${info.months} oy - ${info.monthly.toLocaleString()} so‘m/oy`;
     state.step = 'apartment_name';
     userState.set(chatId, state);
 
